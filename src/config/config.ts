@@ -1,11 +1,18 @@
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
+import path from 'path';
 dotenv.config();
 
-// Configurações do ambiente
+const BASE_URL = process.env.BASE_URL ?? '';
+
+// Environment configurations
 export const config = {
-  baseURL: "http://localhost:3002/api",
-  authToken:
-    "s%3AhSfJQcHrPkHWYQlJ1c7HgaNg4WALQR0X.5VNjI2R02YOEYztpILgqAwt1gbaIUzfxZb%2FWNhg1MiY", // Atualize aqui o token real
-  maxResponseTimeMs: 1000, // 1 segundo por padrão
-  cookie: process.env.COOKIE,
+  baseURL: `${BASE_URL}${process.env.API_BASE_PATH ?? '/api'}`,
+  authLoginURL: `${BASE_URL}${process.env.AUTH_SESSION_PATH ?? '/api/auth/login'}`,
+  cookie: process.env.COOKIE || '',
+  // Optional mTLS. Leave the TLS_* variables empty when the API does not require client certificates.
+  certs: {
+    key: process.env.TLS_KEY_PATH ? path.resolve(process.cwd(), process.env.TLS_KEY_PATH) : '',
+    cert: process.env.TLS_CERT_PATH ? path.resolve(process.cwd(), process.env.TLS_CERT_PATH) : '',
+    ca: process.env.TLS_CA_PATH ? path.resolve(process.cwd(), process.env.TLS_CA_PATH) : '',
+  },
 };

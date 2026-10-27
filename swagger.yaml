@@ -1,0 +1,81 @@
+openapi: 3.0.3
+info:
+  title: Example API
+  version: 1.0.0
+  description: Minimal contract used by the example domain. Replace with your project's swagger.
+paths:
+  /items/search:
+    post:
+      summary: Search items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids: { type: array, items: { type: integer } }
+                limit: { type: integer }
+                offset: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Item' }
+  /items:
+    post:
+      summary: Create item
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                quantity: { type: integer }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Item' }
+  /items/{id}:
+    patch:
+      summary: Update item
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+    delete:
+      summary: Delete item
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+  /items/export:
+    post:
+      summary: Export items to xlsx
+      responses:
+        '200': { description: OK }
+  /items/import:
+    post:
+      summary: Import items from xlsx
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200': { description: OK }
+components:
+  schemas:
+    Item:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        quantity: { type: integer }

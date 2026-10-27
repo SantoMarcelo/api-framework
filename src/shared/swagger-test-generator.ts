@@ -1,10 +1,10 @@
-import fs from "fs";
-import path from "path";
-import Ajv from "ajv";
-import SwaggerParser from "@apidevtools/swagger-parser";
-import { config } from "../config/config";
-import { generateExampleFromSchema } from "../utils/bodyGenerator";
-import { HttpService } from "../services/httpService";
+import fs from 'fs';
+import path from 'path';
+import Ajv from 'ajv';
+import SwaggerParser from '@apidevtools/swagger-parser';
+import { config } from '../config/config';
+import { generateExampleFromSchema } from './utils/body-generator';
+import { HttpClientAdapter } from './http-client-adapter';
 
 export class SwaggerService {
   private swagger: any;
@@ -15,12 +15,10 @@ export class SwaggerService {
       this.swagger = await parser.dereference(swaggerPath);
 
       if (!this.swagger.paths) {
-        throw new Error(
-          'O arquivo Swagger carregado não contém "paths". Verifique o arquivo.'
-        );
+        throw new Error('Swagger loaded file not contains "paths". Verify the file.');
       }
     } catch (error) {
-      console.error("Erro ao carregar o Swagger:");
+      console.error('Error while loading Swagger:');
       throw error;
     }
   }
@@ -33,23 +31,16 @@ export class SwaggerService {
       parameters.forEach((param) => {
         const exampleValue = this.getExampleValue(param);
 
-        if (param.in === "path") {
-          finalEndpoint = finalEndpoint.replace(
-            `{${param.name}}`,
-            encodeURIComponent(exampleValue)
-          );
-        } else if (param.in === "query") {
-          queryParams.push(
-            `${encodeURIComponent(param.name)}=${encodeURIComponent(
-              exampleValue
-            )}`
-          );
+        if (param.in === 'path') {
+          finalEndpoint = finalEndpoint.replace(`{${param.name}}`, encodeURIComponent(exampleValue));
+        } else if (param.in === 'query') {
+          queryParams.push(`${encodeURIComponent(param.name)}=${encodeURIComponent(exampleValue)}`);
         }
       });
     }
 
     if (queryParams.length > 0) {
-      finalEndpoint += `?${queryParams.join("&")}`;
+      finalEndpoint += `?${queryParams.join('&')}`;
     }
 
     return finalEndpoint;
@@ -63,93 +54,72 @@ export class SwaggerService {
       return param.schema.example.toString();
     }
 
-    // Tipo padrão
-    const type = param.schema?.type || "string";
+    // Default type
+    const type = param.schema?.type || 'string';
     switch (type) {
-      case "integer":
-      case "number":
-        return "1";
-      case "boolean":
-        return "true";
-      case "string":
+      case 'integer':
+      case 'number':
+        return '1';
+      case 'boolean':
+        return 'true';
+      case 'string':
       default:
-        return "example";
+        return 'example';
     }
   }
 
   generateAllTests() {
     if (!this.swagger) {
-      throw new Error("Swagger não carregado!");
+      throw new Error('Swagger not loaded!');
     }
 
     this.generateFunctionalTests();
     this.generateHealthTests();
     this.generateContractTests();
 
-    console.log("Todos os casos de testes gerados com sucesso!");
+    console.log('All tests generated with success!');
   }
 
   generateFunctionalTests() {
     const paths = Object.keys(this.swagger.paths);
     const describeBlocks: Record<string, string[]> = {};
-    console.log("paths: ", paths);
+    console.log('paths: ', paths);
     paths.forEach((endpoint) => {
       console.log(`DEBUG: Processing endpoint: ${endpoint}`);
       const methods = Object.keys(this.swagger.paths[endpoint]);
       console.log(`DEBUG: Methods found: ${methods}`);
 
       methods.forEach((method) => {
-        console.log(
-          `DEBUG: Processing method: ${method} for endpoint: ${endpoint}`
-        );
+        console.log(`DEBUG: Processing method: ${method} for endpoint: ${endpoint}`);
         const operation = this.swagger.paths[endpoint][method];
         console.log(`DEBUG: Operation object:`, operation);
         console.log(`DEBUG: Operation.responses:`, operation?.responses);
 
         if (!operation) {
-          console.error(
-            `ERROR: Operation is null/undefined for ${method} ${endpoint}`
-          );
+          console.error(`ERROR: Operation is null/undefined for ${method} ${endpoint}`);
           return;
         }
 
         if (!operation.responses) {
-          console.error(
-            `ERROR: operation.responses is null/undefined for ${method} ${endpoint}`
-          );
+          console.error(`ERROR: operation.responses is null/undefined for ${method} ${endpoint}`);
           return;
         }
 
         const lowerMethod = method.toLowerCase();
         const responseTypes = Object.keys(operation.responses);
-        const finalEndpoint = this.buildEndpoint(
-          endpoint,
-          operation.parameters
-        );
-        const needsBody = ["post", "put", "patch"].includes(lowerMethod);
+        const finalEndpoint = this.buildEndpoint(endpoint, operation.parameters);
+        const needsBody = ['post', 'put', 'patch'].includes(lowerMethod);
 
-        // Identificador único por método + endpoint + status
-        const tags =
-          operation.tags && operation.tags.length > 0
-            ? operation.tags
-            : ["SemTag"];
+        // Unique identifier per method + endpoint + status
+        const tags = operation.tags && operation.tags.length > 0 ? operation.tags : ['SemTag'];
 
         responseTypes.forEach((statusCode) => {
-          let bodyDeclaration = "";
-          let axiosCall = "";
+          let bodyDeclaration = '';
+          let axiosCall = '';
 
-          if (
-            needsBody &&
-            operation.requestBody?.content?.["application/json"]?.schema
-          ) {
-            const example = generateExampleFromSchema(
-              operation.requestBody.content["application/json"].schema
-            );
-            bodyDeclaration = `const body = ${JSON.stringify(
-              example,
-              null,
-              2
-            )};\n    `;
+          if (needsBody && operation.requestBody?.content?.['application/json']?.schema) {
+            const example = generateExampleFromSchema(operation.requestBody.content['application/json'].schema);
+            bodyDeclaration = `const body = ${JSON.stringify(example, null, 2)};\n    `;
             axiosCall = `const response = await HttpService.${lowerMethod}(\`\${config.baseURL}${finalEndpoint}\`, body);`;
           } else {
             axiosCall = `const response = await HttpService.${lowerMethod}(\`\${config.baseURL}${finalEndpoint}\`);`;
@@ -176,28 +146,24 @@ export class SwaggerService {
       });
     });
 
-    // Montar conteúdo final com múltiplos describes
+    // Build final content with multiple describes
     let finalTestContent =
       'import { HttpService } from "../../services/httpService";\nimport { config } from "../../config/config";\n';
 
     Object.entries(describeBlocks).forEach(([tag, tests]) => {
       finalTestContent += `
   describe('${tag} - Functional Tests', () => {
-  ${tests.join("\n")}
+  ${tests.join('\n')}
   });
   `;
     });
 
-    const outputDir = path.join(__dirname, "../tests/generated");
+    const outputDir = path.join(__dirname, '../tests/generated');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    fs.writeFileSync(
-      path.join(outputDir, "functional.test.ts"),
-      finalTestContent.trim(),
-      "utf-8"
-    );
+    fs.writeFileSync(path.join(outputDir, 'functional.test.ts'), finalTestContent.trim(), 'utf-8');
   }
 
   generateHealthTests() {
@@ -210,37 +176,22 @@ export class SwaggerService {
       methods.forEach((method) => {
         const operation = this.swagger.paths[endpoint][method];
         const lowerMethod = method.toLowerCase();
-        const finalEndpoint = this.buildEndpoint(
-          endpoint,
-          operation.parameters
-        );
-        const needsBody = ["post", "put", "patch"].includes(lowerMethod);
+        const finalEndpoint = this.buildEndpoint(endpoint, operation.parameters);
+        const needsBody = ['post', 'put', 'patch'].includes(lowerMethod);
 
-        // Garante uma única execução por método+endpoint
+        // Ensure single execution per method+endpoint
         const uniqueTestName = `${lowerMethod.toUpperCase()} ${finalEndpoint}`;
 
         // Determinar a tag (ou usar "SemTag")
-        const tags =
-          operation.tags && operation.tags.length > 0
-            ? operation.tags
-            : ["SemTag"];
+        const tags = operation.tags && operation.tags.length > 0 ? operation.tags : ['SemTag'];
 
-        // Criar corpo do teste
-        let bodyDeclaration = "";
-        let axiosCall = "";
+        // Create test body
+        let bodyDeclaration = '';
+        let axiosCall = '';
 
-        if (
-          needsBody &&
-          operation.requestBody?.content?.["application/json"]?.schema
-        ) {
-          const example = generateExampleFromSchema(
-            operation.requestBody.content["application/json"].schema
-          );
-          bodyDeclaration = `const body = ${JSON.stringify(
-            example,
-            null,
-            2
-          )};\n    `;
+        if (needsBody && operation.requestBody?.content?.['application/json']?.schema) {
+          const example = generateExampleFromSchema(operation.requestBody.content['application/json'].schema);
+          bodyDeclaration = `const body = ${JSON.stringify(example, null, 2)};\n    `;
           axiosCall = `const response = await HttpService.${lowerMethod}(\`\${config.baseURL}${finalEndpoint}\`, body);`;
         } else {
           axiosCall = `const response = await HttpService.${lowerMethod}(\`\${config.baseURL}${finalEndpoint}\`);`;
@@ -252,13 +203,13 @@ export class SwaggerService {
       expect(response.status).toBe(200);
     });`;
 
-        // Adiciona o teste em todas as tags relacionadas
+        // Add the test to all related tags
         tags.forEach((tag: string | number) => {
           if (!describeBlocks[tag]) {
             describeBlocks[tag] = [];
           }
 
-          // Evita adicionar testes duplicados
+          // Avoid adding duplicate tests
           if (!describeBlocks[tag].some((t) => t.includes(uniqueTestName))) {
             describeBlocks[tag].push(testCode);
           }
@@ -266,28 +217,24 @@ export class SwaggerService {
       });
     });
 
-    // Montar conteúdo final com múltiplos describes
+    // Build final content with multiple describes
     let finalTestContent =
       'import { HttpService } from "../../services/httpService";\nimport { config } from "../../config/config";\n';
 
     Object.entries(describeBlocks).forEach(([tag, tests]) => {
       finalTestContent += `
   describe('${tag} - Health Check', () => {
-  ${tests.join("\n")}
+  ${tests.join('\n')}
   });
   `;
     });
 
-    const outputDir = path.join(__dirname, "../tests/generated");
+    const outputDir = path.join(__dirname, '../tests/generated');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    fs.writeFileSync(
-      path.join(outputDir, "health.test.ts"),
-      finalTestContent.trim(),
-      "utf-8"
-    );
+    fs.writeFileSync(path.join(outputDir, 'health.test.ts'), finalTestContent.trim(), 'utf-8');
   }
 
   generateContractTests() {
@@ -301,36 +248,21 @@ export class SwaggerService {
       methods.forEach((method) => {
         const operation = this.swagger.paths[endpoint][method];
         const lowerMethod = method.toLowerCase();
-        const finalEndpoint = this.buildEndpoint(
-          endpoint,
-          operation.parameters
-        );
-        const tags =
-          operation.tags && operation.tags.length > 0
-            ? operation.tags
-            : ["SemTag"];
-        const response = operation.responses?.["200"];
-        const schema = response?.content?.["application/json"]?.schema;
+        const finalEndpoint = this.buildEndpoint(endpoint, operation.parameters);
+        const tags = operation.tags && operation.tags.length > 0 ? operation.tags : ['SemTag'];
+        const response = operation.responses?.['200'];
+        const schema = response?.content?.['application/json']?.schema;
 
         if (!schema) return;
 
-        let bodyDeclaration = "";
-        let axiosCall = "";
+        let bodyDeclaration = '';
+        let axiosCall = '';
 
-        const needsBody = ["post", "put", "patch"].includes(lowerMethod);
+        const needsBody = ['post', 'put', 'patch'].includes(lowerMethod);
 
-        if (
-          needsBody &&
-          operation.requestBody?.content?.["application/json"]?.schema
-        ) {
-          const example = generateExampleFromSchema(
-            operation.requestBody.content["application/json"].schema
-          );
-          bodyDeclaration = `const body = ${JSON.stringify(
-            example,
-            null,
-            2
-          )};\n    `;
+        if (needsBody && operation.requestBody?.content?.['application/json']?.schema) {
+          const example = generateExampleFromSchema(operation.requestBody.content['application/json'].schema);
+          bodyDeclaration = `const body = ${JSON.stringify(example, null, 2)};\n    `;
           axiosCall = `const response = await HttpService.${lowerMethod}(\`\${config.baseURL}${finalEndpoint}\`, body);`;
         } else {
           axiosCall = `const response = await HttpService.${lowerMethod}(\`\${config.baseURL}${finalEndpoint}\`);`;
@@ -370,20 +302,16 @@ export class SwaggerService {
     Object.entries(describeBlocks).forEach(([tag, tests]) => {
       finalTestContent += `
   describe('${tag} - Contract Tests', () => {
-  ${tests.join("\n")}
+  ${tests.join('\n')}
   });
   `;
     });
 
-    const outputDir = path.join(__dirname, "../tests/generated");
+    const outputDir = path.join(__dirname, '../tests/generated');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    fs.writeFileSync(
-      path.join(outputDir, "contract.test.ts"),
-      finalTestContent.trim(),
-      "utf-8"
-    );
+    fs.writeFileSync(path.join(outputDir, 'contract.test.ts'), finalTestContent.trim(), 'utf-8');
   }
 }

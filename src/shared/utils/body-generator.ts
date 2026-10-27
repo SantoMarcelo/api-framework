@@ -1,7 +1,7 @@
 export function generateExampleFromSchema(schema: any): any {
-  if (!schema || typeof schema !== "object") return {};
+  if (!schema || typeof schema !== 'object') return {};
 
-  if (schema.type === "object" && schema.properties) {
+  if (schema.type === 'object' && schema.properties) {
     const obj: any = {};
     for (const key in schema.properties) {
       const prop = schema.properties[key];
@@ -17,17 +17,17 @@ function guessExampleValue(prop: any): any {
   if (!prop) return null;
 
   switch (prop.type) {
-    case "string":
-      return prop.example || "string";
-    case "integer":
+    case 'string':
+      return prop.example || 'string';
+    case 'integer':
       return prop.example || 0;
-    case "number":
+    case 'number':
       return prop.example || 0.0;
-    case "boolean":
+    case 'boolean':
       return prop.example || true;
-    case "array":
+    case 'array':
       return [guessExampleValue(prop.items)];
-    case "object":
+    case 'object':
       return generateExampleFromSchema(prop);
     default:
       return null;

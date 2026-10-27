@@ -1,1 +1,0 @@
-- Adicionar uma pasta fixture para salvar os payloads
