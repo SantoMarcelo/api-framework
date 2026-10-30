@@ -9,12 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * On-disk cache of session cookies produced by the test global setup.
- *
- * <p>The login flow (corp JWT -> OAuth2 -> 2FA -> session cookie) cannot run concurrently: parallel
- * OAuth code exchanges are rejected with {@code invalid_grant} and the TOTP code is only valid
- * inside a 30s window. The global setup therefore logs every account in once, sequentially, and
- * writes the cookies here. Cookie strings are keyed by the credential's userName.
+ * On-disk cache of the JWTs produced by the test global setup, so each account logs in once per run
+ * instead of once per test class. Tokens are keyed by the credential's userName.
  */
 public final class SessionCache {
   private static final Path CACHE_PATH = Path.of(".auth-sessions.json").toAbsolutePath();

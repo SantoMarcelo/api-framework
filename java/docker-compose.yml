@@ -1,0 +1,15 @@
+services:
+  tests:
+    build: .
+    image: api-automation-java
+    working_dir: /app
+    volumes:
+      # Source, .env and Certs/ come from the host, so edits don't need a rebuild
+      # and reports land in ./target on the host
+      - .:/app
+      # Maven cache survives between runs
+      - m2:/root/.m2
+    command: ["test"]
+
+volumes:
+  m2:

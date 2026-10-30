@@ -2,6 +2,7 @@ package com.apiframework.http;
 
 import com.apiframework.config.Config;
 import com.apiframework.shared.Json;
+import io.qameta.allure.Allure;
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.RestAssured;
 import io.restassured.config.EncoderConfig;
@@ -11,12 +12,14 @@ import io.restassured.filter.Filter;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
+import java.security.GeneralSecurityException;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 
 /**
  * Single entry point for every HTTP call (the equivalent of {@code HttpClientAdapter}).
  *
- * <p>The session cookie held by {@link Config#cookie()} is injected into every request, so tests
- * never handle cookies. Unlike axios, REST Assured does not throw on 4xx/5xx: negative tests
+ * <p>The JWT held by {@link Config#token()} is sent as {@code Authorization: Bearer} on every
+ * request, so tests never handle tokens. Unlike axios, REST Assured does not throw on 4xx/5xx: negative tests
  * simply assert on {@code status()}. Failed requests are logged for diagnosis.
  */
 public final class ApiClient {
@@ -32,23 +35,35 @@ public final class ApiClient {
         return result;
       };
 
+  private static final AllureRestAssured ALLURE_FILTER = new AllureRestAssured();
+
+  /**
+   * Attaches request/response to the Allure report, but only while a test or fixture is running:
+   * calls made outside one (the global setup login) have nowhere to attach to.
+   */
+  private static final Filter ALLURE_ATTACHMENTS =
+      (request, response, ctx) ->
+          Allure.getLifecycle().getCurrentTestCaseOrStep().isPresent()
+              ? ALLURE_FILTER.filter(request, response, ctx)
+              : ctx.next(request, response);
+
   private ApiClient() {}
 
-  /** A request with the session cookie. */
+  /** A request with the bearer token. */
   public static RequestSpecification spec() {
     RequestSpecification spec = anonymousSpec();
-    String cookie = Config.cookie();
-    return cookie.isEmpty() ? spec : spec.header("Cookie", cookie);
+    String token = Config.token();
+    return token.isEmpty() ? spec : spec.header("Authorization", "Bearer " + token);
   }
 
-  /** A request without the session cookie (the login flow). */
+  /** A request without the bearer token (the login flow). */
   public static RequestSpecification anonymousSpec() {
     return RestAssured.given()
         .config(REST_CONFIG)
         .urlEncodingEnabled(false) // endpoints are already built; never double-encode
         .accept("application/json, text/plain, */*")
         .filter(FAILURE_LOGGER)
-        .filter(new AllureRestAssured());
+        .filter(ALLURE_ATTACHMENTS);
   }
 
   public static Response get(String url) {
@@ -88,11 +103,16 @@ public final class ApiClient {
                 EncoderConfig.encoderConfig().appendDefaultContentCharsetToContentTypeIfUndefined(false));
 
     if (TlsSupport.isConfigured()) {
-      SSLConfig ssl = SSLConfig.sslConfig().keyStore(TlsSupport.keyStore(), TlsSupport.STORE_PASSWORD);
-      if (TlsSupport.trustStore() != null) {
-        ssl = ssl.trustStore(TlsSupport.trustStore());
+      // SSLConfig only takes the client key store as a file, so hand it an in-memory socket factory.
+      // A null trust store falls back to the JVM default.
+      try {
+        SSLSocketFactory factory =
+            new SSLSocketFactory(
+                TlsSupport.keyStore(), TlsSupport.STORE_PASSWORD, TlsSupport.trustStore());
+        config = config.sslConfig(SSLConfig.sslConfig().sslSocketFactory(factory));
+      } catch (GeneralSecurityException e) {
+        throw new IllegalStateException("Could not build the mTLS socket factory", e);
       }
-      config = config.sslConfig(ssl);
     }
     return config;
   }

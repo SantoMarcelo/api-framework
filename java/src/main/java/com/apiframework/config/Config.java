@@ -12,10 +12,9 @@ public final class Config {
 
   private static final String BASE_URL = env("BASE_URL", "");
   private static final String BASE_API_URL = BASE_URL + env("API_BASE_PATH", "/api");
-  private static final String AUTH_LOGIN_URL = BASE_URL + env("AUTH_SESSION_PATH", "/api/auth/login");
 
-  /** Session cookie injected into every request by {@code ApiClient}. Mutated by {@code AuthApi}. */
-  private static volatile String cookie = env("COOKIE", "");
+  /** JWT sent as {@code Authorization: Bearer} by {@code ApiClient}. Mutated by {@code AuthApi}. */
+  private static volatile String token = env("TOKEN", "");
 
   private Config() {}
 
@@ -48,16 +47,12 @@ public final class Config {
     return BASE_API_URL;
   }
 
-  public static String authLoginUrl() {
-    return AUTH_LOGIN_URL;
+  public static String token() {
+    return token;
   }
 
-  public static String cookie() {
-    return cookie;
-  }
-
-  public static void setCookie(String value) {
-    cookie = value == null ? "" : value;
+  public static void setToken(String value) {
+    token = value == null ? "" : value;
   }
 
   /** Optional mTLS material (PEM). Empty strings mean "not configured". */

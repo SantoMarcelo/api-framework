@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "stock": {
+            "type": "integer"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "priceWhenAdded": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "priceChanged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "productId",
+          "name",
+          "sku",
+          "imageUrl",
+          "unitPrice",
+          "quantity",
+          "subtotal",
+          "stock",
+          "available",
+          "priceWhenAdded",
+          "priceChanged"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "totalItems": {
+      "type": "integer"
+    },
+    "total": {
+      "type": "number"
+    },
+    "hasPriceChanges": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "items",
+    "totalItems",
+    "total",
+    "hasPriceChanges"
+  ],
+  "additionalProperties": false
+}

@@ -21,7 +21,6 @@ public final class SystemAccounts {
     String id = Config.env(prefix + "_ID", "0");
     return new UserCredentials(
         Long.parseLong(id),
-        Config.env(prefix + "_SECRETKEY"),
         Config.env(prefix + "_USERNAME"),
         Config.env(prefix + "_PASSWORD"));
   }

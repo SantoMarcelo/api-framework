@@ -1,0 +1,97 @@
+name: API tests (Java)
+
+# Brings up the Loja QA backend from the portifolio repository and runs the Java suite against it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      groups:
+        description: JUnit tag(s) to run (contract, functional, document-files, unit)
+        default: contract
+      backend_ref:
+        description: Branch, tag or SHA of SantoMarcelo/portifolio to test against
+        default: main
+
+concurrency:
+  group: api-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Throwaway database seeded on every run; these are the seed accounts the API documents.
+      BASE_URL: http://localhost:3333
+      API_BASE_PATH: /api
+      DEFAULT_USER_ID: 2
+      DEFAULT_USER_USERNAME: cliente@loja.com
+      DEFAULT_USER_PASSWORD: Cliente@123
+      ADMIN_USER_ID: 1
+      ADMIN_USER_USERNAME: admin@loja.com
+      ADMIN_USER_PASSWORD: Admin@123
+
+    steps:
+      - name: Checkout tests
+        uses: actions/checkout@v4
+
+      # A private repository needs the PORTIFOLIO_TOKEN secret (fine-grained PAT, Contents: read on
+      # SantoMarcelo/portifolio). For a public one the default token is enough.
+      - name: Checkout backend (SantoMarcelo/portifolio)
+        uses: actions/checkout@v4
+        with:
+          repository: SantoMarcelo/portifolio
+          ref: ${{ inputs.backend_ref || 'main' }}
+          token: ${{ secrets.PORTIFOLIO_TOKEN || github.token }}
+          path: portifolio
+
+      # Only the backend: the frontend is not needed by API tests. --wait blocks until the healthcheck passes.
+      - name: Start backend
+        working-directory: portifolio
+        run: docker compose up -d --build --wait backend
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # DefaultUserContractTest belongs to the template's example domain (routes that do not exist here)
+      - name: Run tests
+        working-directory: java
+        run: mvn -B test -Dgroups="${{ inputs.groups || 'contract' }}" -Dtest='!DefaultUserContractTest' -Dsurefire.failIfNoSpecifiedTests=false
+
+      - name: Build Allure report
+        if: always()
+        working-directory: java
+        run: mvn -B allure:report
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: java/target/site/allure-maven-plugin
+          if-no-files-found: ignore
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: java/target/surefire-reports
+          if-no-files-found: ignore
+
+      - name: Backend logs
+        if: failure()
+        working-directory: portifolio
+        run: docker compose logs backend
+
+      - name: Stop backend
+        if: always()
+        working-directory: portifolio
+        run: docker compose down -v

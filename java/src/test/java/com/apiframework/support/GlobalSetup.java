@@ -12,11 +12,8 @@ import org.junit.platform.launcher.LauncherSession;
 import org.junit.platform.launcher.LauncherSessionListener;
 
 /**
- * Runs once before any test (registered in {@code META-INF/services}): authenticates every account
- * and caches the sessions.
- *
- * <p>Logins run strictly sequentially. Identity providers commonly reject concurrent OAuth code
- * exchanges with {@code invalid_grant}, so this loop must never be parallelized.
+ * Runs once before any test (registered in {@code META-INF/services}): logs every account in and
+ * caches the tokens. Always a fresh login, so a token left over from an earlier run never leaks in.
  *
  * <p>A failure here is not fatal: the account is simply absent from the cache and the test that
  * needs it falls back to logging in on demand.
@@ -33,7 +30,7 @@ public class GlobalSetup implements LauncherSessionListener {
         continue; // not every environment has all accounts provisioned
       }
       try {
-        sessions.put(SessionCache.key(credentials), AuthApi.loginAndGetCookie(credentials));
+        sessions.put(SessionCache.key(credentials), AuthApi.login(credentials));
       } catch (RuntimeException e) {
         failed.add(credentials.userName() + ": " + e.getMessage());
       }
@@ -41,7 +38,7 @@ public class GlobalSetup implements LauncherSessionListener {
 
     SessionCache.write(sessions);
 
-    System.out.printf("%n[auth] cached %d/%d sessions%n", sessions.size(), SystemAccounts.ALL.size());
+    System.out.printf("%n[auth] cached %d/%d tokens%n", sessions.size(), SystemAccounts.ALL.size());
     if (!failed.isEmpty()) {
       System.err.println(
           "[auth] failed to pre-authenticate (tests will log in on demand):\n  - "
