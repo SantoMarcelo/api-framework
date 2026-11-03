@@ -25,9 +25,10 @@ concurrency:
   group: java-rest-assured-${{ github.ref }}
   cancel-in-progress: true
 
-# checks: write lets the JUnit report publish its own check run (with per-test annotations) on the commit/PR
+# checks: write lets the JUnit report publish its own check run (with per-test annotations) on the commit/PR;
+# contents: write lets the Allure report be pushed to the gh-pages branch (served by GitHub Pages)
 permissions:
-  contents: read
+  contents: write
   checks: write
 
 jobs:
@@ -101,6 +102,34 @@ jobs:
           name: allure-report
           path: java-rest-assured/target/site/allure-maven-plugin
           if-no-files-found: ignore
+
+      # Each run gets its own folder on gh-pages (java-rest-assured/<run id>/), so the link in older runs keeps
+      # working. Fork PRs have a read-only token and cannot push, so they only get the artifact.
+      - name: Publish Allure report to GitHub Pages
+        id: pages
+        if: always() && hashFiles('java-rest-assured/target/site/allure-maven-plugin/index.html') != '' && github.event.pull_request.head.repo.fork != true
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: java-rest-assured/target/site/allure-maven-plugin
+          destination_dir: java-rest-assured/${{ github.run_id }}
+          keep_files: true
+          commit_message: 'docs(allure): java-rest-assured report for run ${{ github.run_id }}'
+
+      - name: Link Allure report in the run summary
+        if: always() && steps.pages.outcome == 'success'
+        env:
+          REPORT_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/java-rest-assured/${{ github.run_id }}/
+        run: |
+          {
+            echo "## 📊 Allure report"
+            echo ""
+            echo "**[Open the Allure report](${REPORT_URL})** — Ctrl/Cmd + click to open it in a new tab."
+            echo ""
+            echo "_GitHub Pages takes about a minute to publish it after this run._"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=Allure report::${REPORT_URL}"
 
       - name: Upload surefire reports
         if: always()
