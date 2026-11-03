@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "productId": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "ENTRY",
+              "EXIT",
+              "ADJUSTMENT"
+            ]
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "previousStock": {
+            "type": "integer"
+          },
+          "newStock": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "sku": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "sku"
+            ],
+            "additionalProperties": false
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "productId",
+          "type",
+          "quantity",
+          "previousStock",
+          "newStock",
+          "reason",
+          "userId",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "pagination": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "pageSize": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "totalPages": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page",
+        "pageSize",
+        "total",
+        "totalPages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "data",
+    "pagination"
+  ],
+  "additionalProperties": false
+}

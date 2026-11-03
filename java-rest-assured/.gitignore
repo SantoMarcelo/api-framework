@@ -1,0 +1,11 @@
+target/
+.env
+.auth-sessions.json
+Certs/
+temp/
+allure-results/
+.allure/
+allure-report/
+.idea/
+*.iml
+.DS_Store

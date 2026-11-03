@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "totalProducts": {
+      "type": "integer"
+    },
+    "inactiveProducts": {
+      "type": "integer"
+    },
+    "lowStockProducts": {
+      "type": "integer"
+    },
+    "outOfStockProducts": {
+      "type": "integer"
+    },
+    "totalOrders": {
+      "type": "integer"
+    },
+    "ordersByStatus": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    }
+  },
+  "required": [
+    "totalProducts",
+    "inactiveProducts",
+    "lowStockProducts",
+    "outOfStockProducts",
+    "totalOrders",
+    "ordersByStatus"
+  ],
+  "additionalProperties": false
+}

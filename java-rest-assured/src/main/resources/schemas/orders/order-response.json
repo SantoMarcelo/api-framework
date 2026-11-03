@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "userId": {
+      "type": "integer"
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ],
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PAID",
+        "PAYMENT_FAILED",
+        "CANCELLED"
+      ]
+    },
+    "subtotal": {
+      "type": "number"
+    },
+    "discount": {
+      "type": "number"
+    },
+    "shipping": {
+      "type": "number"
+    },
+    "total": {
+      "type": "number"
+    },
+    "couponCode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "paymentMethod": {
+      "type": "string",
+      "enum": [
+        "CREDIT_CARD",
+        "PIX",
+        "BOLETO"
+      ]
+    },
+    "cardLast4": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "street": {
+          "type": "string"
+        },
+        "number": {
+          "type": "string"
+        },
+        "complement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "district": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "zip": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "street",
+        "number",
+        "complement",
+        "district",
+        "city",
+        "state",
+        "zip"
+      ],
+      "additionalProperties": false
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "subtotal": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "productId",
+          "name",
+          "price",
+          "quantity",
+          "subtotal"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "userId",
+    "status",
+    "subtotal",
+    "discount",
+    "shipping",
+    "total",
+    "couponCode",
+    "paymentMethod",
+    "cardLast4",
+    "address",
+    "items",
+    "createdAt",
+    "updatedAt"
+  ],
+  "additionalProperties": false
+}
