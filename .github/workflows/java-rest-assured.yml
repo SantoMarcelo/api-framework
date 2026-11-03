@@ -25,6 +25,11 @@ concurrency:
   group: java-rest-assured-${{ github.ref }}
   cancel-in-progress: true
 
+# checks: write lets the JUnit report publish its own check run (with per-test annotations) on the commit/PR
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -71,6 +76,18 @@ jobs:
       - name: Run tests
         working-directory: java-rest-assured
         run: mvn -B test -Dgroups="${{ inputs.groups || 'contract' }}" -Dtest='!DefaultUserContractTest' -Dsurefire.failIfNoSpecifiedTests=false
+
+      # Renders the surefire results in the run's Summary page and as a "Test report" check, with
+      # failures annotated on the test source lines
+      - name: Publish test report
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: java-rest-assured/target/surefire-reports/TEST-*.xml
+          check_name: Test report (${{ inputs.groups || 'contract' }})
+          include_passed: true
+          detailed_summary: true
+          require_tests: true
 
       - name: Build Allure report
         if: always()

@@ -56,8 +56,9 @@ The report must be served over HTTP: opening `index.html` straight from disk sho
 ## CI (GitHub Actions)
 
 [`.github/workflows/java-rest-assured.yml`](../.github/workflows/java-rest-assured.yml) checks out the backend from
-`SantoMarcelo/portifolio`, starts it with its `docker-compose.yml` (backend only), runs the contract suite
-and uploads the Allure report as an artifact. It runs on pushes to `main`, on pull requests and on demand
+`SantoMarcelo/portifolio`, starts it with its `docker-compose.yml` (backend only), runs the contract suite,
+publishes the results on the run's **Summary** page and as a **Test report** check (failures annotated on the
+test lines) and uploads the Allure report as an artifact. It runs on pushes to `main`, on pull requests and on demand
 (**Actions → Java · Rest Assured → Run workflow**, where the tag and the backend branch can be chosen).
 If `portifolio` is private, add a `PORTIFOLIO_TOKEN` secret (fine-grained PAT with *Contents: read*).
 
